@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e9f2ec">
+  <title>流光格式工坊 · 本地文件转换</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+    :root {
+      color-scheme: light;
+      --ink: #1e302c;
+      --muted: #74837e;
+      --line: rgba(76, 105, 95, .14);
+      --glass: rgba(255, 255, 255, .55);
+      --glass-strong: rgba(255, 255, 255, .78);
+      --green: #236b58;
+      --mint: #d6eee2;
+      --coral: #e99475;
+      --shadow: 0 24px 70px rgba(56, 89, 75, .12), inset 0 1px 0 rgba(255, 255, 255, .82);
+      font-family: 'DM Sans', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: #eaf2eb;
+      background-image:
+        repeating-linear-gradient(118deg, transparent 0 76px, rgba(255,255,255,.27) 77px, transparent 79px),
+        radial-gradient(ellipse at 10% 8%, rgba(255,255,255,.92), transparent 36%),
+        radial-gradient(ellipse at 92% 34%, rgba(183,222,201,.62), transparent 35%),
+        radial-gradient(ellipse at 48% 100%, rgba(238,211,190,.52), transparent 48%),
+        linear-gradient(135deg, #eff4ed 0%, #dcece2 52%, #f4e9dd 100%);
+      background-attachment: fixed;
+    }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 28px 46px 40px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 42px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; letter-spacing: 0; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.84); border-radius: 12px; color: #246b59; background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(191,229,209,.65)); box-shadow: 0 5px 14px rgba(61,106,83,.12), inset 0 1px 2px white; }
+    .brand-mark svg { width: 19px; height: 19px; }
+    .top-actions { display: flex; align-items: center; gap: 18px; }
+    .privacy { display: flex; align-items: center; gap: 7px; color: #536b60; font-size: 12px; }
+    .privacy svg { width: 15px; height: 15px; color: #32735f; }
+    .avatar { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; background: linear-gradient(145deg, #f4ddd0, #e3b29a); color: #6e493d; font-size: 12px; font-weight: 700; }
+    .intro { padding: 60px 0 34px; text-align: center; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.72); border-radius: 99px; background: rgba(255,255,255,.42); color: #557168; font-size: 11px; font-weight: 600; letter-spacing: .04em; box-shadow: inset 0 1px 1px rgba(255,255,255,.8); }
+    .eyebrow .spark { color: #d77e5f; font-size: 14px; }
+    h1 { margin: 16px 0 9px; font-size: clamp(32px, 4vw, 48px); line-height: 1.22; letter-spacing: 0; font-weight: 600; }
+    h1 span { color: #39735f; }
+    .intro p { margin: 0; color: #718079; font-size: 14px; line-height: 1.8; }
+    .workspace { display: grid; grid-template-columns: 245px minmax(0, 1fr); gap: 17px; max-width: 1080px; margin: 0 auto; align-items: stretch; }
+    .glass-panel { border: 1px solid rgba(255,255,255,.82); background: var(--glass); box-shadow: var(--shadow); backdrop-filter: blur(24px) saturate(130%); -webkit-backdrop-filter: blur(24px) saturate(130%); }
+    .sidebar { padding: 20px 13px 14px; border-radius: 19px; }
+    .side-label { margin: 0 9px 11px; color: #89958f; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .tool-list { display: grid; gap: 5px; }
+    .tool-tab { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 47px; padding: 0 11px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: #63726c; text-align: left; cursor: pointer; transition: background .2s ease, color .2s ease, transform .2s ease; }
+    .tool-tab:hover { background: rgba(255,255,255,.47); color: var(--ink); }
+    .tool-tab[aria-selected="true"] { border-color: rgba(255,255,255,.88); background: linear-gradient(100deg, rgba(255,255,255,.85), rgba(239,249,243,.62)); color: #28644f; box-shadow: 0 5px 16px rgba(58,91,74,.08), inset 0 1px 0 #fff; }
+    .tab-icon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 9px; background: rgba(101,150,126,.1); color: #437a62; }
+    .tool-tab:nth-child(2) .tab-icon { background: rgba(228,153,119,.13); color: #b66e4f; }
+    .tool-tab:nth-child(3) .tab-icon { background: rgba(119,145,174,.12); color: #617b98; }
+    .tab-icon svg { width: 16px; height: 16px; }
+    .tab-copy { display: grid; gap: 2px; }
+    .tab-copy strong { font-size: 12px; font-weight: 600; }
+    .tab-copy small { color: #99a29d; font-size: 10px; }
+    .side-note { margin-top: 28px; padding: 13px 11px 10px; border-top: 1px solid var(--line); color: #809089; font-size: 10px; line-height: 1.8; }
+    .side-note strong { display: block; margin-bottom: 3px; color: #526b5f; font-size: 11px; font-weight: 600; }
+    .main-panel { min-height: 432px; padding: 23px 25px 20px; border-radius: 19px; }
+    .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 19px; }
+    .panel-heading h2 { margin: 0; font-size: 16px; font-weight: 600; }
+    .panel-heading p { margin: 5px 0 0; color: #84918a; font-size: 11px; }
+    .format-control { display: flex; align-items: center; gap: 9px; padding: 7px 9px 7px 11px; border: 1px solid rgba(255,255,255,.9); border-radius: 10px; background: rgba(255,255,255,.5); color: #708078; font-size: 10px; white-space: nowrap; }
+    .format-control select { max-width: 92px; border: 0; outline: 0; background: transparent; color: #315e4c; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .dropzone { display: flex; min-height: 213px; flex-direction: column; align-items: center; justify-content: center; padding: 22px; border: 1px dashed rgba(77,127,99,.34); border-radius: 14px; background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(236,248,240,.35)); text-align: center; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+    .dropzone.is-over { transform: scale(1.008); border-color: #438467; background: rgba(224,245,232,.75); }
+    .upload-orb { display: grid; place-items: center; width: 49px; height: 49px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,.94); border-radius: 16px; background: linear-gradient(150deg, rgba(255,255,255,.95), rgba(202,232,214,.82)); color: #3d8062; box-shadow: 0 7px 20px rgba(54,112,79,.12), inset 0 1px 1px white; }
+    .upload-orb svg { width: 22px; height: 22px; }
+    .dropzone h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+    .dropzone p { margin: 0; color: #8b9891; font-size: 10px; line-height: 1.7; }
+    .choose-button { display: inline-flex; align-items: center; gap: 7px; margin-top: 13px; padding: 9px 15px; border: 1px solid rgba(255,255,255,.9); border-radius: 9px; background: linear-gradient(135deg, #397c60, #286c54); color: white; box-shadow: 0 6px 14px rgba(44,109,79,.18), inset 0 1px 0 rgba(255,255,255,.2); font-size: 11px; font-weight: 600; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+    .choose-button:hover { transform: translateY(-1px); box-shadow: 0 9px 18px rgba(44,109,79,.23); }
+    .choose-button svg { width: 14px; height: 14px; }
+    .file-input { display: none; }
+    .file-list { display: grid; gap: 8px; max-height: 156px; margin-top: 13px; overflow: auto; }
+    .file-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.83); border-radius: 10px; background: rgba(255,255,255,.5); }
+    .file-badge { display: grid; flex: 0 0 auto; place-items: center; width: 31px; height: 34px; border-radius: 8px; background: rgba(75,132,98,.1); color: #397455; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+    .file-info { min-width: 0; flex: 1; }
+    .file-info strong { display: block; overflow: hidden; color: #425950; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .file-info small { display: block; margin-top: 3px; color: #98a39d; font-size: 9px; }
+    .remove-file { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #8c9992; cursor: pointer; }
+    .remove-file:hover { background: rgba(214,135,111,.12); color: #ae674e; }
+    .remove-file svg { width: 15px; height: 15px; }
+    .conversion-row { display: flex; align-items: center; gap: 13px; margin-top: 16px; }
+    .convert-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 43px; padding: 0 18px; border: 1px solid rgba(255,255,255,.84); border-radius: 10px; background: linear-gradient(105deg, #286c53, #398369); color: white; box-shadow: 0 8px 19px rgba(45,111,80,.2), inset 0 1px 0 rgba(255,255,255,.23); font-size: 11px; font-weight: 600; cursor: pointer; transition: transform .18s ease, filter .18s ease; }
+    .convert-button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+    .convert-button:disabled { opacity: .46; cursor: not-allowed; box-shadow: none; }
+    .convert-button svg { width: 15px; height: 15px; }
+    .conversion-hint { color: #98a29d; font-size: 10px; }
+    .message { min-height: 17px; margin: 10px 0 0; color: #5c7b69; font-size: 10px; line-height: 1.6; }
+    .message.error { color: #ae674e; }
+    .result-list { display: grid; gap: 7px; margin-top: 9px; }
+    .result-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border: 1px solid rgba(107,164,127,.19); border-radius: 9px; background: rgba(230,247,234,.55); }
+    .result-name { min-width: 0; overflow: hidden; color: #4b6957; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .download-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; color: #2f7656; font-size: 10px; font-weight: 700; text-decoration: none; }
+    .download-link:hover { color: #1d523d; }
+    .download-link svg { width: 13px; height: 13px; }
+    .footnote { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 1080px; margin: 18px auto 0; color: #829088; font-size: 10px; }
+    .footnote svg { width: 13px; height: 13px; color: #518369; }
+    .toast { position: fixed; right: 22px; bottom: 20px; z-index: 5; max-width: min(380px, calc(100vw - 40px)); padding: 12px 15px; border: 1px solid rgba(255,255,255,.86); border-radius: 11px; background: rgba(255,255,255,.86); box-shadow: 0 12px 36px rgba(42,76,60,.17); color: #4d6b59; font-size: 11px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; backdrop-filter: blur(16px); }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 760px) {
+      .shell { padding: 19px 18px 30px; }
+      .intro { padding: 45px 0 25px; }
+      .workspace { grid-template-columns: 1fr; gap: 12px; }
+      .sidebar { padding: 11px; }
+      .side-label, .side-note { display: none; }
+      .tool-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .tool-tab { min-height: 54px; justify-content: center; gap: 7px; padding: 5px; }
+      .tab-copy small { display: none; }
+      .tab-copy strong { font-size: 10px; }
+      .tab-icon { width: 26px; height: 26px; }
+      .main-panel { min-height: auto; padding: 19px 17px 16px; }
+      .dropzone { min-height: 202px; }
+      .footnote { text-align: center; line-height: 1.6; }
+    }
+    @media (max-width: 430px) {
+      .shell { padding-right: 13px; padding-left: 13px; }
+      .privacy span { display: none; }
+      .panel-heading { flex-direction: column; }
+      .format-control { align-self: flex-start; }
+      .conversion-row { align-items: flex-start; flex-direction: column; gap: 9px; }
+      .tool-tab { flex-direction: column; gap: 3px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c2.4 3.1 5.5 6 5.5 10a5.5 5.5 0 0 1-11 0c0-4 3.1-6.9 5.5-10Z"/><path d="M9.5 14.5c.4 1.4 1.3 2.1 2.8 2.3"/></svg></span>流光格式工坊</div>
+      <div class="top-actions"><div class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg><span>文件仅在你的设备中处理</span></div><div class="avatar" aria-label="本地模式">本地</div></div>
+    </header>
+    <section class="intro">
+      <div class="eyebrow"><span class="spark">✳</span> 简单转换，轻盈流动</div>
+      <h1>让文件格式，<span>自在流动。</span></h1>
+      <p>常用格式，一处转换。你的文件始终留在本地设备。</p>
+    </section>
+    <main class="workspace">
+      <aside class="sidebar glass-panel" aria-label="转换类别">
+        <p class="side-label">选择工具</p>
+        <div class="tool-list" role="tablist" aria-label="文件类型">
+          <button class="tool-tab" id="tab-image" role="tab" aria-selected="true" aria-controls="converter-panel" data-mode="image">
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span><span class="tab-copy"><strong>图片转换</strong><small>PNG · JPG · WebP</small></span>
+          </button>
+          <button class="tool-tab" id="tab-data" role="tab" aria-selected="false" aria-controls="converter-panel" data-mode="data">
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4zM4 10h16M10 4v16"/><path d="M14 14h2m-2 3h2"/></svg></span><span class="tab-copy"><strong>表格与数据</strong><small>CSV · JSON</small></span>
+          </button>
+          <button class="tool-tab" id="tab-document" role="tab" aria-selected="false" aria-controls="converter-panel" data-mode="document">
+            <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></span><span class="tab-copy"><strong>文本文档</strong><small>TXT · MD · PDF</small></span>
+          </button>
+        </div>
+        <div class="side-note"><strong>轻巧、私密、无负担</strong>转换在浏览器中完成，不会将文件发送到任何服务器。</div>
+      </aside>
+      <section class="main-panel glass-panel" id="converter-panel" role="tabpanel" aria-labelledby="tab-image">
+        <div class="panel-heading">
+          <div><h2 id="panel-title">图片格式转换</h2><p id="panel-description">把常见图片转换为适合分享与保存的格式。</p></div>
+          <label class="format-control"><span>转换为</span><select id="target-format" aria-label="目标格式"><option value="webp">WebP</option><option value="png">PNG</option><option value="jpg">JPG</option></select></label>
+        </div>
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="拖放文件到此处，或选择文件">
+          <div class="upload-orb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5"/><path d="M20 16.5v2A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-2"/></svg></div>
+          <h3 id="drop-title">将图片拖到这里</h3><p id="drop-hint">支持 PNG、JPG、WebP 等常见图片格式</p>
+          <button class="choose-button" id="choose-files" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg>选择文件</button>
+        </div>
+        <input class="file-input" id="file-input" type="file" accept="image/*">
+        <div class="file-list" id="file-list" aria-live="polite"></div>
+        <div class="conversion-row"><button class="convert-button" id="convert-button" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10l-3-3m3 3-3 3M17 17H7l3 3m-3-3 3-3"/></svg><span id="convert-label">开始转换</span></button><span class="conversion-hint" id="conversion-hint">最多可同时选择多张图片</span></div>
+        <p class="message" id="message" aria-live="polite"></p>
+        <div class="result-list" id="result-list" aria-live="polite"></div>
+      </section>
+    </main>
+    <footer class="footnote"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3"/></svg>无需注册 · 不上传文件 · 免费使用</footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const modes = {
+      image: {
+        title: '图片格式转换', description: '把常见图片转换为适合分享与保存的格式。',
+        accept: 'image/*', hint: '支持 PNG、JPG、WebP 等常见图片格式', drop: '将图片拖到这里', formatLabel: '转换为',
+        formats: [['webp', 'WebP'], ['png', 'PNG'], ['jpg', 'JPG']], multi: true, conversionHint: '最多可同时选择多张图片'
+      },
+      data: {
+        title: '表格与数据转换', description: '在 CSV 与 JSON 之间转换，适合整理与交换数据。',
+        accept: '.csv,.json,application/json,text/csv', hint: '支持 .csv 与 .json 文件', drop: '将 CSV 或 JSON 文件拖到这里', formatLabel: '转换为',
+        formats: [['json', 'JSON'], ['csv', 'CSV']], multi: false, conversionHint: 'CSV 首行将作为 JSON 字段名'
+      },
+      document: {
+        title: '文本文档转换', description: '转换 TXT 与 Markdown，或通过打印另存为 PDF。',
+        accept: '.txt,.md,.markdown,text/plain,text/markdown', hint: '支持 .txt 与 .md 文件；PDF 使用浏览器打印保存', drop: '将 TXT 或 Markdown 文件拖到这里', formatLabel: '转换为',
+        formats: [['pdf', 'PDF'], ['txt', 'TXT'], ['md', 'Markdown']], multi: false, conversionHint: 'PDF 会在新窗口打开打印对话框'
+      }
+    };
+    const state = { mode: 'image', files: [], urls: [] };
+    const $ = (selector) => document.querySelector(selector);
+    const fileInput = $('#file-input');
+    const dropzone = $('#dropzone');
+    const fileList = $('#file-list');
+    const resultList = $('#result-list');
+    const convertButton = $('#convert-button');
+    const message = $('#message');
+    const targetFormat = $('#target-format');
+
+    function showToast(text) {
+      const toast = $('#toast');
+      toast.textContent = text;
+      toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    }
+    function extension(name) { return name.includes('.') ? name.split('.').pop().toLowerCase() : ''; }
+    function updateFiles(files) {
+      const mode = modes[state.mode];
+      const supported = [...files].filter((file) => {
+        const ext = extension(file.name);
+        if (state.mode === 'image') return file.type.startsWith('image/');
+        if (state.mode === 'data') return ['csv', 'json'].includes(ext);
+        return ['txt', 'md', 'markdown'].includes(ext);
+      });
+      if (!supported.length && files.length) {
+        showToast(`请选择受支持的${state.mode === 'image' ? '图片' : state.mode === 'data' ? 'CSV 或 JSON' : 'TXT 或 Markdown'}文件`);
+        return;
+      }
+      state.files = mode.multi ? [...state.files, ...supported] : supported.slice(0, 1);
+      if (mode.multi) {
+        const unique = new Map();
+        state.files.forEach((file) => unique.set(`${file.name}:${file.size}:${file.lastModified}`, file));
+        state.files = [...unique.values()];
+      }
+      if (state.mode === 'data' && state.files.length === 1) {
+        targetFormat.value = extension(state.files[0].name) === 'json' ? 'csv' : 'json';
+      }
+      renderFiles();
+      clearResults();
+      message.textContent = '';
+      message.classList.remove('error');
+    }
+    function renderFiles() {
+      fileList.innerHTML = state.files.map((file, index) => {
+        const ext = extension(file.name) || 'file';
+        return `<div class="file-row"><span class="file-badge">${escapeHtml(ext)}</span><span class="file-info"><strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong><small>${formatSize(file.size)}</small></span><button class="remove-file" type="button" data-remove="${index}" aria-label="移除 ${escapeHtml(file.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m18 6-12 12M6 6l12 12"/></svg></button></div>`;
+      }).join('');
+      convertButton.disabled = state.files.length === 0;
+      convertButton.querySelector('span').textContent = state.files.length > 1 ? `转换 ${state.files.length} 个文件` : '开始转换';
+    }
+    function clearResults() {
+      state.urls.forEach((url) => URL.revokeObjectURL(url));
+      state.urls = [];
+      resultList.innerHTML = '';
+    }
+    function switchMode(mode) {
+      state.mode = mode;
+      state.files = [];
+      clearResults();
+      renderFiles();
+      message.textContent = '';
+      message.classList.remove('error');
+      const config = modes[mode];
+      document.querySelectorAll('.tool-tab').forEach((tab) => {
+        const selected = tab.dataset.mode === mode;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+      });
+      $('#converter-panel').setAttribute('aria-labelledby', `tab-${mode}`);
+      $('#panel-title').textContent = config.title;
+      $('#panel-description').textContent = config.description;
+      $('#drop-title').textContent = config.drop;
+      $('#drop-hint').textContent = config.hint;
+      $('#conversion-hint').textContent = config.conversionHint;
+      $('.format-control span').textContent = config.formatLabel;
+      targetFormat.innerHTML = config.formats.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+      fileInput.accept = config.accept;
+      fileInput.multiple = config.multi;
+    }
+    function downloadResult(name, blob) {
+      const url = URL.createObjectURL(blob);
+      state.urls.push(url);
+      return `<div class="result-row"><span class="result-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span><a class="download-link" href="${url}" download="${escapeHtml(name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M5 20h14"/></svg>下载</a></div>`;
+    }
+    function outputName(name, ext) {
+      const lastDot = name.lastIndexOf('.');
+      const base = lastDot > 0 ? name.slice(0, lastDot) : name;
+      return `${base}.${ext}`;
+    }
+    function csvToRows(text) {
+      const rows = [];
+      let row = [], field = '', quoted = false;
+      for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+        if (quoted) {
+          if (char === '"' && text[index + 1] === '"') { field += '"'; index += 1; }
+          else if (char === '"') quoted = false;
+          else field += char;
+        } else if (char === '"') quoted = true;
+        else if (char === ',') { row.push(field); field = ''; }
+        else if (char === '\n' || char === '\r') {
+          if (char === '\r' && text[index + 1] === '\n') index += 1;
+          row.push(field); rows.push(row); row = []; field = '';
+        } else field += char;
+      }
+      if (quoted) throw new Error('CSV 文件中的引号没有正确闭合。');
+      row.push(field);
+      if (row.some((value) => value !== '') || rows.length === 0) rows.push(row);
+      return rows.filter((item) => item.some((value) => value !== ''));
+    }
+    function encodeCsvValue(value) {
+      const text = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+    function convertData(file, format) {
+      return file.text().then((text) => {
+        if (format === 'json') {
+          const rows = csvToRows(text);
+          if (rows.length < 2) throw new Error('CSV 至少需要一行字段名和一行数据。');
+          const headers = rows[0].map((header) => header.trim());
+          if (headers.some((header) => !header)) throw new Error('CSV 的字段名不能为空。');
+          const data = rows.slice(1).map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
+          return new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+        }
+        const data = JSON.parse(text);
+        if (!Array.isArray(data) || data.some((item) => item === null || typeof item !== 'object' || Array.isArray(item))) throw new Error('JSON 须为对象数组，例如 [{"name":"Ada"}]。');
+        const headers = [...new Set(data.flatMap((item) => Object.keys(item)))];
+        if (!headers.length) throw new Error('JSON 对象中没有可导出的字段。');
+        const csv = [headers, ...data.map((item) => headers.map((header) => item[header]))].map((row) => row.map(encodeCsvValue).join(',')).join('\r\n');
+        return new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' });
+      });
+    }
+    function convertImage(file, format) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        const sourceUrl = URL.createObjectURL(file);
+        image.onload = () => {
+          URL.revokeObjectURL(sourceUrl);
+          const canvas = document.createElement('canvas');
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          const context = canvas.getContext('2d');
+          if (!context) { reject(new Error('当前浏览器无法处理这张图片。')); return; }
+          if (format === 'jpg') { context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+          context.drawImage(image, 0, 0);
+          const mime = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
+          canvas.toBlob((blob) => {
+            if (!blob) reject(new Error('图片转换失败，请换一个格式试试。'));
+            else if (blob.type !== mime) reject(new Error(`此浏览器不支持导出 ${format.toUpperCase()} 格式。`));
+            else resolve(blob);
+          }, mime, format === 'jpg' ? 0.92 : undefined);
+        };
+        image.onerror = () => { URL.revokeObjectURL(sourceUrl); reject(new Error(`无法读取图片：${file.name}`)); };
+        image.src = sourceUrl;
+      });
+    }
+    function markdownToHtml(markdown) {
+      const escaped = escapeHtml(markdown);
+      return escaped.split(/\r?\n/).map((line) => {
+        if (/^###\s/.test(line)) return `<h3>${line.replace(/^###\s/, '')}</h3>`;
+        if (/^##\s/.test(line)) return `<h2>${line.replace(/^##\s/, '')}</h2>`;
+        if (/^#\s/.test(line)) return `<h1>${line.replace(/^#\s/, '')}</h1>`;
+        if (/^[-*]\s/.test(line)) return `<p class="bullet">• ${line.replace(/^[-*]\s/, '')}</p>`;
+        return line ? `<p>${line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')}</p>` : '<br>';
+      }).join('');
+    }
+    async function convertDocument(file, format) {
+      const text = await file.text();
+      if (format === 'txt' || format === 'md') {
+        const content = format === 'txt' ? text.replace(/^#{1,6}\s+/gm, '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/^[-*]\s+/gm, '• ') : text;
+        const mime = format === 'txt' ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8';
+        return { name: outputName(file.name, format), blob: new Blob([content], { type: mime }) };
+      }
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) throw new Error('浏览器拦截了新窗口，请允许弹出窗口后重试。');
+      const body = extension(file.name) === 'md' || extension(file.name) === 'markdown' ? markdownToHtml(text) : `<pre>${escapeHtml(text)}</pre>`;
+      printWindow.document.write(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(outputName(file.name, 'pdf'))}</title><style>body{font:14px/1.8 Georgia,'Noto Serif SC',serif;color:#222;margin:18mm 20mm}h1{font-size:25px}h2{font-size:20px}h3{font-size:17px}p{margin:0 0 8px}.bullet{padding-left:12px}pre{font:13px/1.7 'Courier New',monospace;white-space:pre-wrap;overflow-wrap:anywhere}@page{margin:18mm}</style></head><body>${body}<script>window.onload=()=>window.print()<\/script></body></html>`);
+      printWindow.document.close();
+      return { printed: true };
+    }
+    async function convertAll() {
+      const format = targetFormat.value;
+      convertButton.disabled = true;
+      $('#convert-label').textContent = '转换中…';
+      message.textContent = '';
+      message.classList.remove('error');
+      resultList.innerHTML = '';
+      const results = [];
+      try {
+        for (const file of state.files) {
+          let result;
+          if (state.mode === 'image') result = { name: outputName(file.name, format), blob: await convertImage(file, format) };
+          else if (state.mode === 'data') result = { name: outputName(file.name, format), blob: await convertData(file, format) };
+          else result = await convertDocument(file, format);
+          if (result.printed) {
+            message.textContent = '打印窗口已打开。选择“保存为 PDF”即可下载文档。';
+            showToast('已打开浏览器打印窗口');
+          } else results.push(result);
+        }
+        resultList.innerHTML = results.map((result) => downloadResult(result.name, result.blob)).join('');
+        if (results.length) { message.textContent = `转换完成，共生成 ${results.length} 个文件。`; showToast('转换完成，可以下载文件了'); }
+      } catch (error) {
+        message.textContent = error instanceof Error ? error.message : '转换时出现问题，请检查文件后重试。';
+        message.classList.add('error');
+      } finally {
+        convertButton.disabled = state.files.length === 0;
+        $('#convert-label').textContent = state.files.length > 1 ? `转换 ${state.files.length} 个文件` : '开始转换';
+      }
+    }
+
+    document.querySelectorAll('.tool-tab').forEach((tab) => tab.addEventListener('click', () => switchMode(tab.dataset.mode)));
+    $('.tool-list').addEventListener('keydown', (event) => {
+      if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+      event.preventDefault();
+      const tabs = [...document.querySelectorAll('.tool-tab')];
+      const current = tabs.indexOf(document.activeElement);
+      const next = (current + (event.key === 'ArrowDown' ? 1 : tabs.length - 1)) % tabs.length;
+      tabs[next].focus();
+      switchMode(tabs[next].dataset.mode);
+    });
+    $('#choose-files').addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('click', (event) => { if (!event.target.closest('button')) fileInput.click(); });
+    dropzone.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', () => { updateFiles(fileInput.files); fileInput.value = ''; });
+    fileList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-remove]');
+      if (!button) return;
+      state.files.splice(Number(button.dataset.remove), 1);
+      renderFiles(); clearResults(); message.textContent = '';
+    });
+    convertButton.addEventListener('click', convertAll);
+    for (const eventName of ['dragenter', 'dragover']) dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.add('is-over'); });
+    for (const eventName of ['dragleave', 'drop']) dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.remove('is-over'); });
+    dropzone.addEventListener('drop', (event) => updateFiles(event.dataTransfer.files));
+    document.addEventListener('dragover', (event) => event.preventDefault());
+    document.addEventListener('drop', (event) => event.preventDefault());
+    window.addEventListener('beforeunload', clearResults);
+  </script>
+</body>
+</html>
